@@ -94,15 +94,15 @@ const ShowEmployees = () => {
         }
     }
 
-    const deleteEmployee = (id, firstName) => {
+    const deleteEmployee = (id, firstName, lastName) => {
         const MySwal = withReactContent(Swal);
         MySwal.fire({
-            title: '¿Seguro de eliminar el empleado ' + firstName + ' ?',
+            title: '¿Seguro de eliminar el empleado ' + firstName + " "+ lastName + ' ?',
             icon: 'question', text: 'No se podrá dar marcha atrás',
             showCancelButton: true, confirmButtonText: 'Si, eliminar', cancelButtonText: 'Cancelar'
         }).then((result) => {
             if (result.isConfirmed) {
-                enviarSolicitud('DELETE', { employeeId: id }); // Aquí enviamos el objeto con la propiedad employeeId
+                enviarSolicitud('DELETE', id); // Solo envía el id
             } else {
                 show_alerta('El producto NO fue eliminado', 'info');
             }
@@ -137,11 +137,11 @@ const ShowEmployees = () => {
                                             <td>{employee.role}</td>
                                             <td>${new Intl.NumberFormat('es-CO').format(employee.salary)}</td>
                                             <td>
-                                                <button onClick={() => openModal(2, employee.employeeId, employee.firstName, employee.lastName, employee.role, employee.salary)} className='btn btn-warning' data-bs-toggle='modal' data-bs-target='#modalEmployees'>
+                                                <button onClick={() => openModal(2, employee.employeeId, employee.firstName, employee.lastName)} className='btn btn-warning' data-bs-toggle='modal' data-bs-target='#modalEmployees'>
                                                     <i className='fa-solid fa-edit'></i>
                                                 </button>
                                                 &nbsp;
-                                                <button onClick={() => deleteEmployee(employee.employeeId, employee.firstName)} className='btn btn-danger'>
+                                                <button onClick={() => deleteEmployee(employee.employeeId, employee.firstName, employee.lastName)} className='btn btn-danger'>
                                                     <i className='fa-solid fa-trash'></i>
                                                 </button>
                                             </td>
