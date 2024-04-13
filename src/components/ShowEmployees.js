@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
@@ -7,6 +7,7 @@ import { show_alerta } from '../functions';
 
 const ShowEmployees = () => {
     const url = 'https://apiemployees.azurewebsites.net/api/employees';
+    const segundaurl = 'https://apiemployees.azurewebsites.net/api/employee'; // Ruta base para el backend
     const [employees, setEmployees] = useState([]);
     const [employeeId, setEmployeeId] = useState('');
     const [firstName, setFirstName] = useState('');
@@ -18,14 +19,14 @@ const ShowEmployees = () => {
 
     useEffect(() => {
         getEmployees();
-      }, []); 
+    }, []);
 
     const getEmployees = async () => {
         try {
-          const response = await axios.get(url);
-          setEmployees(response.data);
+            const response = await axios.get(url);
+            setEmployees(response.data);
         } catch (error) {
-          console.error(error);
+            console.error(error);
         }
     }
 
@@ -38,7 +39,7 @@ const ShowEmployees = () => {
         setOperation(op);
         if (op === 1) {
             setTitle('Create Employee');
-        } else if (op ===2) {
+        } else if (op === 2) {
             setTitle('Update Employee');
             setEmployeeId(employeeId);
             setFirstName(firstName);
@@ -46,47 +47,65 @@ const ShowEmployees = () => {
             setRole(role);
             setSalary(salary);
         }
-        window.setTimeout(function(){
-            document.getElementById('firstName').focus();
+        window.setTimeout(function () {
+            document.getElementById('id').focus();
         }, 500);
     }
 
     const validar = () => {
         var parametros;
         var metodo;
-        if(firstName.trim() === ''){
+        if (firstName.trim() === '') {
             show_alerta('Escribe el nombre del empleado', 'warning');
-        } else if(lastName.trim() === ''){
+        } else if (lastName.trim() === '') {
             show_alerta('Escribe el apellido del empleado', 'warning');
-        } else if(role.trim() === ''){
+        } else if (role.trim() === '') {
             show_alerta('Escribe el rol del empleado', 'warning');
-        } else if(salary.trim() === ''){
+        } else if (salary === '') {
             show_alerta('Escribe el salario del empleado', 'warning');
-        } else{
-            if(operation === 1){
-                parametros = {firstName:firstName.trim(), lastName:lastName.trim(), role:role.trim(), salary:salary.trim()};
-                metodo='POST';
-            }else {
-                parametros = {employeeId:employeeId.trim(), firstName:firstName.trim(), lastName:lastName.trim(), role:role.trim(), salary:salary.trim()};
-                metodo='PUT';
+        } else {
+            if (operation === 1) {
+                parametros = { firstName: firstName.trim(), lastName: lastName.trim(), role: role.trim(), salary: salary }; // No es necesario enviar employeeId en la creación
+                metodo = 'POST';
+            } else {
+                parametros = { firstName: firstName.trim(), lastName: lastName.trim(), role: role.trim(), salary: salary };
+                metodo = 'PUT';
             }
             enviarSolicitud(metodo, parametros);
         }
     }
 
-    const enviarSolicitud = async(metodo, parametros) => {
-        await axios({ method:metodo, url:url, data:parametros}).then(function(respuesta){
-            var tipo = respuesta.data[0];
-            var msj = respuesta.data[1];
+    const enviarSolicitud = async (metodo, parametros) => {
+        let apiUrl = segundaurl;
+        if (metodo === 'DELETE' || metodo === 'PUT') {
+            apiUrl += `/${employeeId}`; // Aquí utilizamos el employeeId almacenado en el estado
+        }
+        try {
+            const response = await axios({ method: metodo, url: apiUrl, data: parametros });
+            const { tipo, msj } = response.data; // Esperamos que la respuesta contenga un objeto con las propiedades tipo y msj
             show_alerta(msj, tipo);
-            if(tipo === 'success'){
+            if (tipo === 'success') {
                 document.getElementById('btnCerrar').click();
                 getEmployees();
             }
-        })
-        .catch(function(error){
+        } catch (error) {
             show_alerta('Error en la solicitud', 'error');
             console.log(error);
+        }
+    }
+
+    const deleteEmployee = (id, firstName) => {
+        const MySwal = withReactContent(Swal);
+        MySwal.fire({
+            title: '¿Seguro de eliminar el empleado ' + firstName + ' ?',
+            icon: 'question', text: 'No se podrá dar marcha atrás',
+            showCancelButton: true, confirmButtonText: 'Si, eliminar', cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                enviarSolicitud('DELETE', { employeeId: id }); // Aquí enviamos el objeto con la propiedad employeeId
+            } else {
+                show_alerta('El producto NO fue eliminado', 'info');
+            }
         });
     }
 
@@ -96,7 +115,7 @@ const ShowEmployees = () => {
                 <div className='row mt-3'>
                     <div className='col-md-4 offset-4'>
                         <div className='d-grid mx-auto'>
-                            <button onClick={()=> openModal(1)} className='btn btn-dark' data-bs-toggle='modal' data-bs-target='#modalEmployees'>
+                            <button onClick={() => openModal(1)} className='btn btn-dark' data-bs-toggle='modal' data-bs-target='#modalEmployees'>
                                 <i className='fa-solid fa-circle-plus'></i> Create
                             </button>
                         </div>
@@ -110,25 +129,24 @@ const ShowEmployees = () => {
                                     <tr><th>ID</th><th>First Name</th><th>Last Name</th><th>Role</th><th>Salary</th></tr>
                                 </thead>
                                 <tbody className='table-group-divider'>
-                                    {employees.map((employee)=>(
+                                    {employees.map((employee) => (
                                         <tr key={employee.employeeId}>
                                             <td>{employee.employeeId}</td>
                                             <td>{employee.firstName}</td>
                                             <td>{employee.lastName}</td>
                                             <td>{employee.role}</td>
-                                            <td>${new Intl.NumberFormat('es-CO').format(employee.salary)}</td>     
+                                            <td>${new Intl.NumberFormat('es-CO').format(employee.salary)}</td>
                                             <td>
                                                 <button onClick={() => openModal(2, employee.employeeId, employee.firstName, employee.lastName, employee.role, employee.salary)} className='btn btn-warning' data-bs-toggle='modal' data-bs-target='#modalEmployees'>
                                                     <i className='fa-solid fa-edit'></i>
                                                 </button>
                                                 &nbsp;
-                                                <button className='btn btn-danger'>
+                                                <button onClick={() => deleteEmployee(employee.employeeId, employee.firstName)} className='btn btn-danger'>
                                                     <i className='fa-solid fa-trash'></i>
                                                 </button>
-                                            </td>                                       
+                                            </td>
                                         </tr>
-                                    ))
-                                    }
+                                    ))}
                                 </tbody>
                             </table>
                         </div>
@@ -137,7 +155,7 @@ const ShowEmployees = () => {
             </div>
             <div id='modalEmployees' className='modal fade' aria-hidden='true'>
                 <div className='modal-dialog'>
-                    <div className='mpdal-content'>
+                    <div className='modal-content'>
                         <div className='modal-header'>
                             <label className='h5'>{title}</label>
                             <button type='button' className='btn-close' data-bs-dismiss='modal' aria-label='Close'></button>
@@ -147,22 +165,22 @@ const ShowEmployees = () => {
                             <div className='input-group mb-3'>
                                 <span className='input-group-text'><i className='fa-solid fa-user'></i></span>
                                 <input type='text' id='firstName' className='form-control' placeholder='First Name' value={firstName}
-                                onChange={(e) => setFirstName(e.target.value)}></input>
+                                    onChange={(e) => setFirstName(e.target.value)}></input>
                             </div>
                             <div className='input-group mb-3'>
                                 <span className='input-group-text'><i className='fa-solid fa-user'></i></span>
                                 <input type='text' id='lastName' className='form-control' placeholder='Last Name' value={lastName}
-                                onChange={(e) => setLastName(e.target.value)}></input>
+                                    onChange={(e) => setLastName(e.target.value)}></input>
                             </div>
                             <div className='input-group mb-3'>
                                 <span className='input-group-text'><i className='fa-solid fa-briefcase'></i></span>
                                 <input type='text' id='role' className='form-control' placeholder='Role' value={role}
-                                onChange={(e) => setRole(e.target.value)}></input>
+                                    onChange={(e) => setRole(e.target.value)}></input>
                             </div>
                             <div className='input-group mb-3'>
                                 <span className='input-group-text'><i className='fa-solid fa-dollar-sign'></i></span>
                                 <input type='text' id='salary' className='form-control' placeholder='Salary' value={salary}
-                                onChange={(e) => setSalary(e.target.value)}></input>
+                                    onChange={(e) => setSalary(e.target.value)}></input>
                             </div>
                             <div className='d-grid col-6 mx-auto'>
                                 <button onClick={() => validar()} className='btn btn-success'>
@@ -180,4 +198,4 @@ const ShowEmployees = () => {
     )
 }
 
-export default ShowEmployees
+export default ShowEmployees;
